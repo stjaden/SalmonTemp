@@ -65,9 +65,9 @@ power_flow <- dworshack_flow %>%
 #convert kcfs to L/s 
 power_flow_Ls <- power_flow %>% 
   select(date, total_outflow, spill_flow, calc_power_flow) %>% 
-  mutate(total_outflow_Ls = (total_outflow * 1000 * 28.32)) %>% 
-  mutate(spill_flow_Ls = spill_flow * 1000 * 28.32) %>% 
-  mutate(calc_power_flow_Ls = calc_power_flow * 1000 * 28.32)
+  mutate(total_outflow_Ls = (total_outflow * 28.32)) %>% 
+  mutate(spill_flow_Ls = spill_flow * 28.32) %>% 
+  mutate(calc_power_flow_Ls = calc_power_flow * 28.32)
 
 
 
@@ -87,7 +87,65 @@ head_inputs <- dworshack_head %>%
   
 historic_inputs <- merge(flow_inputs, head_inputs)
 
+historic_inputs$date <- as.Date(historic_inputs$date, "%m/%d/%Y")
 
 
 ```
+
+
+Try running power gen model
+
+```{r}
+
+source("../R/dshack_powergen.R")
+
+
+test_data <- historic_inputs %>% 
+  select(date, calc_power_flow_Ls, head_m) %>% 
+  mutate(date = ymd(date)) %>% 
+  mutate_at(vars(date), funs(year, month, day)) %>% 
+  filter(year == 2018)
+
+
+reservoir_model_res= as.data.frame(matrix(nrow=365, ncol=4))
+colnames(reservoir_model_res)=c("date", "head","flowrate","power")
+
+reservoir_model_res$date = test_data$date
+reservoir_model_res$head = test_data$head_m
+reservoir_model_res$flowrate = test_data$calc_power_flow_Ls
+
+reservoir_model_res$power = mapply(FUN=max_power, head =reservoir_model_res$head, flow=reservoir_model_res$flowrate)
+
+reservoir_model_res <- mutate(reservoir_model_res, power_MW = (power/100000)*2.5)
+
+
+
+#plot results
+
+ggplot(reservoir_model_res, aes(x=date, y=power_MW))+
+  geom_line()
+
+
+```
+
+Check if modeled values are cloe to actual power generation values in 2018
+
+```{r}
+
+powergen_2018 <- read_csv("../Data/powergen_2018.csv")
+colnames(powergen_2018) = c("date", "measured_power")
+powergen_2018$date <- as.Date(powergen_2018$date, "%m/%d/%Y")
+
+
+
+ggplot()+
+  geom_line(data = reservoir_model_res, aes(x=date, y=power_MW)) +
+  geom_line(data = powergen_2018, aes(x= date, y=measured_power, color = "red"))
+  
+
+
+
+
+```
+
 

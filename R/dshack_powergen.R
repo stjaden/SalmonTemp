@@ -8,7 +8,7 @@
 #' @param g Acceleration due to gravity (m/sec2) Default is 9.8
 #' @param Kefficiency Turbine Efficiency (0-1) Default is 0.9 for Francis Turbine
 #' @param head net head of water in reservoir (m)
-#' @param flow mass flow rate (kg/sec) which is the same as (L/sec)
+#' @param flow mass flow rate (m3/sec) 
 #' @author Savannah Tjaden
 #' @return Maximum possible power generation (W)
 
