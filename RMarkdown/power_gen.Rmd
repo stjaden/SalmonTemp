@@ -1,0 +1,93 @@
+---
+title: "Dworshack_2018data"
+author: "Savannah Tjaden"
+date: "5/22/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(readr)
+
+
+```
+
+
+```{r}
+
+#load elevation data
+dworshack_elv <- read_csv("../Data/dworshack_elv.csv") 
+
+#load flow data
+dworshack_flow <- read_csv("../Data/dworshack_flow.csv")
+
+
+```
+
+
+
+Calculate the head available for power generation
+
+head = forebay elevation (ft) - tailwater elevation (ft)
+
+```{r}
+
+# create new column that calculates head and remove NAs
+dworshack_head <- dworshack_elv %>% 
+  mutate(head = (forebay_elv - tailwater_elv)) %>% 
+  select(date, head) %>% 
+  na.omit() 
+
+
+# convert head from ft to m
+dworshack_head <- mutate(dworshack_head, head_m = dworshack_head$head*0.3048)
+
+
+
+
+```
+
+
+Calculate flow for power generation. This could be an input parameter, but then there would be no change in power generation when outflows values are changed. 
+
+power generation flow = total outflow (kcfs) - spill (kcfs) 
+
+This ignore losses, which are generally pretty low
+
+```{r}
+
+#create column with claculated flow for power gen
+power_flow <- dworshack_flow %>% 
+  mutate(calc_power_flow = (total_outflow - spill_flow)) 
+
+#convert kcfs to L/s 
+power_flow_Ls <- power_flow %>% 
+  select(date, total_outflow, spill_flow, calc_power_flow) %>% 
+  mutate(total_outflow_Ls = (total_outflow * 1000 * 28.32)) %>% 
+  mutate(spill_flow_Ls = spill_flow * 1000 * 28.32) %>% 
+  mutate(calc_power_flow_Ls = calc_power_flow * 1000 * 28.32)
+
+
+
+```
+
+
+Merge final inputs into single df
+
+```{r}
+
+flow_inputs <- power_flow_Ls %>% 
+  select(date, total_outflow_Ls, spill_flow_Ls, calc_power_flow_Ls) 
+
+
+head_inputs <- dworshack_head %>% 
+  select(date, head_m)
+  
+historic_inputs <- merge(flow_inputs, head_inputs)
+
+
+
+```
+
