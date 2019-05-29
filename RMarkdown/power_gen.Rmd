@@ -52,9 +52,7 @@ dworshack_head <- mutate(dworshack_head, head_m = dworshack_head$head*0.305)
 
 Calculate flow for power generation. This could be an input parameter, but then there would be no change in power generation when outflows values are changed. 
 
-power generation flow = total outflow (kcfs) - spill (kcfs) 
-
-This ignore losses, which are generally pretty low
+power generation flow = total outflow (kcfs) - spill (kcfs) - losses(kcfs)
 
 ```{r}
 
