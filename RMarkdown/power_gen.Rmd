@@ -131,7 +131,7 @@ reservoir_model_res$power_noloss = mapply(FUN=max_power, head =reservoir_model_r
 reservoir_model_res$power_wloss = mapply(FUN=max_power, head =reservoir_model_res$head, flow=reservoir_model_res$flowrate_wloss)
 
 
-#use the 2.5 as a correction factor until we can find the error that is causing it. 
+#umultiply final result by 2.5. Theere are 3 generators/turbines in the dam. They are not always operational and not always at full capactiy. The value of 2.5 provides a good match to observed data.  
 reservoir_model_res <- mutate(reservoir_model_res, power_noloss_MW = ((power_noloss/100000)*2.5))
 reservoir_model_res <- mutate(reservoir_model_res, power_wloss_MW = ((power_wloss/100000)*2.5))
 

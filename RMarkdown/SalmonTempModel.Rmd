@@ -8,96 +8,67 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-#Notes
--Baseline data: use average monthly data (streamflow and temperature) for the average of 5 water years from 2014-2018 --> this is the highest generality/aggregation that can avoid the variability of flow and temperature data on smaller times steps, but that is still relevant to salmon migration (monthly data captures seasonal migration)
-Example:
-M Q T
-1 3 18
-2 5 17
-3 9 14
-4 7 16
-......
 
 
 
+There are 5 general steps to this model:
+
+1. Cold water is released from Dworshack dam (North Fork of the Clearwater River) and generates power
+
+2. The cold water released from Dworshack dam (the North Fork of the Clearwater River) mixes with the warm water of the mainstem of the Clearwater River
+
+3. The mixed Clearwater River mixes with the warm water of the Middle Fork of the Snake River
+
+4. The mixed Snake River water enters the forebay of Lower Granite Dam where it is warmed by solar radiation
+
+5. Water is released from Lower Granite Dam, which also generates power
 
 
+
+# Step 1: Cold Water is released from Dworshack Dam and generates power
+
+##Load libraries and data
 ```{r}
-#Load packages
+
 library(tidyverse)
-library(deSolve)
-
-```
-
-#Baseline Model Run
-```{r}
-#Load Dworshack Reservoir streamflow and temperature data
-dworshack <- read_csv()
-
-#Wrangle data
-
-#Load the South Clear Water River streamflow and temperature data
-s_clear_water <- read_csv()
-
-#Wrangle data
+library(readr)
 
 ```
 
 ```{r}
-#Mixing of Dworshack and South Clear Water River
-source("../R/mix.R")
-main_seg_1 <- mix()
+
+#load elevation data
+dworshack_elv <- read_csv("../Data/dworshack_elv.csv") 
+
+#load flow data
+dworshack_flow <- read_csv("../Data/dworshack_flow.csv")
 
 ```
+
+
+## Calculate power generation model inputs
+
+### 
+head (ft) = forebay elevation (ft) - tailwater elevation (ft)
+
 
 ```{r}
-#Load Middle Snake River streamflow and temperature data
-mid_snake <- read_csv()
 
-#Wrangle data
+# create new column that calculates head and remove NAs
+dworshack_head <- dworshack_elv %>% 
+  mutate(head = (forebay_elv - tailwater_elv)) %>% 
+  select(date, head) %>% 
+  na.omit() 
 
-```
+# convert head from ft to m
+dworshack_head <- mutate(dworshack_head, head_m = dworshack_head$head*0.305)
 
-```{r}
-#Mixing of Main River Segment 1 with Middle Snake River
-source("..R/mix.R")
-main_seg_2 <- mix()
-
-```
-
-```{r}
-#Load air temperature data near Lower Granite Dam
-air_temp <- read_csv()
-
-#Wrangle data
-
-```
-
-```{r}
-#Model conduction heat gain of reservoir due to air temperature
-source("..R/air_conduction.R")
-lower_granite <- ode(y = , times = , func = air_conduction, parms = )
-
-```
-
-```{r}
-#Calculate Electrical Hydropower Generation
-source("..R/power_gen.R")
-hydropower <- power_gen()
-```
-
-```{r}
-#Visualize Results
 
 ```
 
 
-#Sensitivity Analysis
-##Scenario 1: 
- 
-##Scenario 2:
 
-##Scenario 3:
 
-##Scenario 4:
+
+
  
