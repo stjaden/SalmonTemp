@@ -47,7 +47,10 @@ library(readr)
 dworshack_elv <- read_csv("../Data/dworshack_elv.csv") 
 
 #load flow data
-dworshack_flow <- read_csv("../Data/dworshack_flow.csv")
+dworshack_flow <- read_csv("../Data/dworshack_flow.csv") %>% 
+  mutate(date = ymd(date)) %>% 
+  mutate_at(vars(date), funs(year, month, day)) %>% 
+  filter(year == 2018)
 
 ```
 
@@ -81,6 +84,7 @@ flow availabile for power generation (kcfs) = total outflow (kcfs) - spill (kcfs
 #create column with flows avaialble for power generation assuming 5% loss
 
 perc_loss = 0.05 #start with 5% loss
+
 
 power_flow <- dworshack_flow %>% 
   mutate(calc_power_flow = (total_outflow - spill_flow)) %>% 
@@ -146,3 +150,137 @@ reservoir_model_res <- mutate(reservoir_model_res, power_MW = ((power/100000)*2.
 
 
 # Step 2: Water from Dworshack dam (the North Fork of the Clearwater River) mixes with the mainstem of the Clearwater River
+
+```{r}
+
+library(tidyverse)
+library(readr)
+library(readxl)
+library(lubridate)
+
+```
+
+
+```{r}
+
+
+temp_data <- read_excel("../Data/temp_flow_data.xlsx", 
+    sheet = "temp", col_types = c("date", 
+        "numeric", "numeric", "numeric"))
+
+#North Fork Clearwater flows (release from Dworshack) come from Dworshack flows data in step 1
+flow_data <- read_excel("../Data/temp_flow_data.xlsx", 
+    sheet = "flow", col_types = c("date", 
+        "blank", "text", "text"))
+
+
+
+temp_18 <- temp_data %>% 
+  mutate(date = ymd(Date)) %>% 
+  mutate_at(vars(Date), funs(year, month, day)) %>% 
+  filter(year == 2018)
+
+flow_18 <- flow_data %>% 
+  mutate(date = ymd(Date)) %>% 
+  mutate_at(vars(Date), funs(year, month, day)) %>% 
+  filter(year == 2018)
+
+
+
+  
+
+
+```
+
+#Mix North fork of clearwater with south fork of clearwater
+
+```{r}
+
+source("../R/mix.R")
+
+cw_mix_results <- as.data.frame(matrix(nrow=365, ncol=3))
+colnames(cw_mix_results)=c("date","mix_cw_flow", "mix_cw_temp")
+
+cw_mix_results$date <- temp_18$Date
+
+cw_mixmod = mapply(FUN=mix, Q1=dworshack_flow$total_outflow, Q2 = flow_18$sfork_cw, T1 = temp_18$nfork_cw, T2 = temp_18$sfork_cw)
+
+mix_res = as.data.frame(matrix(unlist(cw_mixmod), ncol=2, byrow=T))
+colnames(mix_res) = c("temp", "flow")
+
+cw_mix_results$mix_cw_temp <- mix_res$temp
+cw_mix_results$mix_cw_temp <- round(cw_mix_results$mix_cw_temp, 2)
+cw_mix_results$mix_cw_flow <- mix_res$flow
+
+
+#view results
+cw_mix_results
+
+
+#plot temperature with river segments
+
+ggplot() +
+  geom_line(data = temp_18, aes(x= Date, y= nfork_cw), color = 'blue') +
+  geom_line(data = temp_18, aes(x= Date, y= sfork_cw), color = 'red') +
+  geom_line(data = cw_mix_results, aes(x= date, y= mix_cw_temp), color = 'purple') +
+  geom_hline(yintercept= 18)+
+  xlab("") +
+  ylab("Temperature (C)") +
+  ggtitle("Mixing in the Clearwater River\n") +
+  theme_classic()+
+  scale_fill_discrete(name = "River", labels = c("Dworshack Outflow", "S Fork Clearwater", "Mixed Clearwater"))
+
+
+```
+
+
+
+
+
+#Mix the mixed Clear Water with le Snake
+
+```{r}
+
+source("../R/mix.R")
+
+snake_mix_results <- as.data.frame(matrix(nrow=365, ncol=3))
+colnames(snake_mix_results)=c("date","mix_sn_flow", "mix_sn_temp")
+
+snake_mix_results$date <- temp_18$Date
+
+snake_mixmod = mapply(FUN=mix, Q1=flow_18$snake, Q2 = cw_mix_results$mix_cw_flow, T1 = temp_18$snake, T2 = cw_mix_results$mix_cw_temp)
+
+mix_res_snake = as.data.frame(matrix(unlist(snake_mixmod), ncol=2, byrow=T))
+colnames(mix_res_snake) = c("temp", "flow")
+
+
+snake_mix_results$mix_sn_temp <- mix_res_snake$temp
+snake_mix_results$mix_sn_temp <- round(snake_mix_results$mix_sn_temp, 2)
+snake_mix_results$mix_sn_flow <- mix_res_snake$flow
+
+
+snake_mix_results
+
+
+#plot with river segments
+
+ggplot() +
+  geom_line(data = temp_18, aes(x= Date, y= snake), color = 'red') +
+  geom_line(data = cw_mix_results, aes(x= date, y= mix_cw_temp), color = 'purple') +
+  geom_line(data = snake_mix_results, aes(x= date, y= mix_sn_temp), color = 'pink') +
+  xlab("") +
+  ylab("Temperature (C)") +
+  ggtitle("Mixing of the Snake and Clearwater River\n") +
+  geom_hline(yintercept= 18)+
+  theme_classic()+
+  scale_fill_discrete(name = "River", labels = c("Dworshack Outflow", "S Fork Clearwater", "Mixed Clearwater"))
+
+
+```
+
+
+
+
+
+
+
