@@ -22,6 +22,7 @@ max_power = function(head, flow, rho=1000, g=9.8, Keff=0.9) {
   
   # calculate power
   result = rho * flow * head * g * Keff
+   
   
   
   return(result)
